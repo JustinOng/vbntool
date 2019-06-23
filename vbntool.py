@@ -1,6 +1,7 @@
 import sys
 import logging
 import hashlib
+from datetime import datetime
 from struct import unpack
 
 logger = logging.getLogger("vbntool")
@@ -24,6 +25,10 @@ if bytes(vbn[0:4]) != b'\x90\x12\x00\x00':
 
 qfile_path = vbn[4:4+384].decode("utf-8").strip("\x00")
 logger.info("Quarantined File was at: {}".format(qfile_path))
+
+# based on observations of my samples
+quarantine_time = datetime.fromtimestamp(unpack("<L", vbn[0xd70 : 0xd74])[0])
+logger.info("Quarantine File created at {}".format(quarantine_time.isoformat()))
 
 qfm_offset = unpack("<L", vbn[0:4])[0]
 
