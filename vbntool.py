@@ -1,24 +1,37 @@
+import os
 import sys
 import logging
 import hashlib
+import argparse
 from datetime import datetime
 from struct import unpack
 
+import logline
+
+parser = argparse.ArgumentParser(description="Parse a Symantec Quarantine File (*.vbn)")
+parser.add_argument("vbn_file", help="Provide a .vbn file to extract information from")
+parser.add_argument("-v", "--verbose", help="Enable verbose output", action="store_true")
+parser.add_argument("-i", "--ignore", help="Extract quarantine file even if hash does not match", action="store_true")
+parser.add_argument("-o", "--output", help="Name to save quarantined file as. Defaults to original name", const=True, nargs="?")
+args = parser.parse_args()
+
+print(args)
+
 logger = logging.getLogger("vbntool")
-logger.setLevel(logging.DEBUG)
+if args.verbose:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(logging.Formatter("[%(levelname)-5s] %(message)s"))
 logger.addHandler(ch)
 
-if len(sys.argv) != 3:
-    sys.exit("Usage: {} <qfile.vbn> <outfile.bin>".format(sys.argv[0]))
-
-with open(sys.argv[1], "rb") as f:
+with open(args.vbn_file, "rb") as f:
     vbn = f.read()
 
-logger.info("Loaded {} ({} bytes)".format(sys.argv[1], len(vbn)))
+logger.info("Loaded {} ({} bytes)".format(args.vbn_file, len(vbn)))
 
 if bytes(vbn[0:4]) != b'\x90\x12\x00\x00':
     logger.warning("First 4 bytes should be 0x90120000 but is {}".format(bytes(vbn[0:4])))
@@ -92,3 +105,16 @@ while section_index < len(qf):
 qfile_actual_sha1 = hashlib.sha1(qfile).hexdigest()
 if qfile_sha1 != qfile_actual_sha1:
     logger.warning("Actual SHA1({}) of the quarantined file does not match stated SHA1({})!".format(qfile_actual_sha1, qfile_sha1))
+
+    if not args.ignore:
+        logger.warning("Pass -i/--ignore to extract the quarantined file anyway")
+        sys.exit()
+
+if args.output == True:
+    out_name = os.path.basename(qfile_path)
+else:
+    out_name = args.output
+
+logger.info("Writing {} bytes to {}".format(len(qfile), out_name))
+with open(out_name, "wb") as f:
+    f.write(bytes(qfile))
