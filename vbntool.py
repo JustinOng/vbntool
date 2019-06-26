@@ -103,7 +103,7 @@ while section_index < len(qf):
         raise Exception("Unknown section header: {}".format(hex(qf[section_index])))
 
 qfile_actual_sha1 = hashlib.sha1(qfile).hexdigest()
-if qfile_sha1 != qfile_actual_sha1:
+if qfile_sha1.lower() != qfile_actual_sha1.lower():
     logger.warning("Actual SHA1({}) of the quarantined file does not match stated SHA1({})!".format(qfile_actual_sha1, qfile_sha1))
 
     if not args.ignore:
