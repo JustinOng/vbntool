@@ -114,14 +114,20 @@ if qfile_sha1.lower() != qfile_actual_sha1.lower():
     logger.warning("Actual SHA1({}) of the quarantined file does not match stated SHA1({})!".format(qfile_actual_sha1, qfile_sha1))
 
     if not args.ignore:
-        logger.warning("Pass -i/--ignore to extract the quarantined file anyway")
+        if args.output:
+            logger.warning("Pass -i/--ignore to extract the quarantined file anyway")
         sys.exit()
 
-if args.output == True:
-    out_name = os.path.basename(qfile_path)
-else:
-    out_name = args.output
+logger.info("Quarantine file hash verified ok")
 
-logger.info("Writing {} bytes to {}".format(len(qfile), out_name))
-with open(out_name, "wb") as f:
-    f.write(bytes(qfile))
+if args.output:
+    if args.output == True:
+        out_name = os.path.basename(qfile_path)
+    else:
+        out_name = args.output
+
+    logger.info("Writing {} bytes to {}".format(len(qfile), out_name))
+    with open(out_name, "wb") as f:
+        f.write(bytes(qfile))
+else:
+    logger.info("Pass -o/--output to extract the quarantined file")
