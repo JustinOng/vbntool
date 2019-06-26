@@ -11,11 +11,10 @@ import logline
 parser = argparse.ArgumentParser(description="Parse a Symantec Quarantine File (*.vbn)")
 parser.add_argument("vbn_file", help="Provide a .vbn file to extract information from")
 parser.add_argument("-v", "--verbose", help="Enable verbose output", action="store_true")
+parser.add_argument("-l", "--logline", help="Displays metadata from the embedded log line", action="store_true")
 parser.add_argument("-i", "--ignore", help="Extract quarantine file even if hash does not match", action="store_true")
-parser.add_argument("-o", "--output", help="Name to save quarantined file as. Defaults to original name", const=True, nargs="?")
+parser.add_argument("-o", "--output", help="Name to save quarantined file as. Defaults to original name if this flag is provided without a value", const=True, nargs="?")
 args = parser.parse_args()
-
-print(args)
 
 logger = logging.getLogger("vbntool")
 if args.verbose:
@@ -38,6 +37,14 @@ if bytes(vbn[0:4]) != b'\x90\x12\x00\x00':
 
 qfile_path = vbn[4:4+384].decode("utf-8").strip("\x00")
 logger.info("Quarantined File was at: {}".format(qfile_path))
+
+record_data = bytes(vbn[4 + 384 : 4 + 384 + 0x800]).decode("ascii").replace("\0", "")
+info = logline.parse_log_line(record_data)
+if args.logline:
+    for key, value in info.items():
+        if not key: continue
+
+        logger.info("[LOG] {}: {}".format(key, value))
 
 # based on observations of my samples
 quarantine_time = datetime.fromtimestamp(unpack("<L", vbn[0xd70 : 0xd74])[0])
